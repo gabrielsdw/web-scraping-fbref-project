@@ -15,7 +15,8 @@ class WsFbref:
         self.url_base = "https://fbref.com"
         self.url_camp = f"{self.url_base}/en/comps/9/Premier-League-Stats"
 
-    def retorna_info_time(self, informacoes_desejadas: list = ['times', 'codes', 'links']):
+
+    def retorna_info_time(self):
         self.driver.get(self.url_camp)
         
         links_times = self.driver.find_elements(By.XPATH, "//td[@data-stat='team']")
@@ -29,7 +30,7 @@ class WsFbref:
             link = tag.get_attribute('href')
 
             code = link.split('/')[-2]
-            print(link)
+            
             times.append(time)
             links.append(link)
             codes.append(code)
@@ -45,21 +46,53 @@ class WsFbref:
             'links':links,
             'codes':codes
         }
-       
-        dados_escolhidos = {}
+      
+        return dados
 
-        if len(informacoes_desejadas) == 1:
-            return dados[informacoes_desejadas[0]]
-        
-        for info in informacoes_desejadas:
-            dados_escolhidos[info] = dados[info]
-        return dados_escolhidos
+
+    def retorna_partidas_por_time(self, times, links_times):
+        dados = {}
+
+        for time, link in zip(times, links_times):
+            self.driver.get(link)
+            
+            
+            tags_partidas = self.driver.find_elements(By.XPATH, "//td[@data-stat='match_report']")
+            tags_datas_partidas = self.driver.find_elements(By.XPATH, "//th[@data-stat='date' and @class='left ']")
+            
+            links = []
+            datas = []
+            
+            for tag_data_partida, tag_partida in zip(tags_datas_partidas, tags_partidas):
+                if str(tag_partida.text).lower() != 'head-to-head':
+                    link_partida = tag_partida.find_element(By.TAG_NAME, 'a')
+                    link_partida = link_partida.get_attribute('href')
+                    
+                    data_partida = str(tag_data_partida.text)
+                    
+                    links.append(link_partida)
+                    datas.append(data_partida)
+                 
+           
+               
+             
+                    
+            dados[time] = {
+                'links': links,
+                'datas': datas
+            }
+
+        return dados
+                
+            
+                    
+
 
 
 
 if __name__ == '__main__':
     obj = WsFbref()
-    info = obj.retorna_info_time(informacoes_desejadas=['codes'])
-    print(info)
-
+    info = obj.retorna_info_time()
+    
+    obj.retorna_partidas_por_time(info['times'][:2], info['links'][:2])
    
