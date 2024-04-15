@@ -7,7 +7,7 @@ import pandas as pd
 import re
 import os
 from bs4 import BeautifulSoup
-
+from random import randint
 
 
 
@@ -111,13 +111,41 @@ class WsFbref:
                 fthg, ftag = self.retorna_gols_home_e_away_team()
                
                 tabelas_home, tabelas_away = self.retorna_tabela_home_e_away()
-
+                print(camp, data, homeTeam, awayTeam, fthg, ftag)
                 cabecalhos = self.retorna_cabecalhos_tabela()
-                print(cabecalhos)
+                #print(cabecalhos)
                 sub_cabecalhos = self.retorna_sub_cabecalhos_tabelas(tabelas_home)
-                print(sub_cabecalhos)     
+                #print(sub_cabecalhos)     
                 variaveis = self.retorna_variaveis_todas_tabelas(tabelas_home)
-                print(variaveis)
+                #print(variaveis)
+                #self.retorna_variaveis_renomeadas(cabecalhos, sub_cabecalhos, variaveis)
+                valores_variaveis_home = self.retorna_valores_variaveis(tabelas_home)
+                print(valores_variaveis_home)
+
+
+    def retorna_valores_variaveis(self, tabelas):
+        valores = []
+        for tabela in tabelas:
+            tfoot = tabela.find_element(By.TAG_NAME, 'tfoot')
+            
+            soup_tfoot = BeautifulSoup(tfoot.get_attribute('outerHTML'), 'html.parser')
+            tds = soup_tfoot.find_all('td')
+            tds = tds[5:]
+            for td in tds:
+                try: 
+                    valores.append(float(td.get_text()))
+                except:
+                    valores.append(None)
+        return valores
+
+            
+    def retorna_variaveis_renomeadas(self, cabecalhos, sub_cabecalhos, variaveis):
+        sum = 0
+        for k, v in zip([item[0] for item in sub_cabecalhos], [item[1] for item in sub_cabecalhos]):
+            print(k, v)
+            sum += v
+        #print(sum, len(variaveis))
+        #print(sum == len(variaveis))
 
               
     def retorna_variaveis_todas_tabelas(self, tabelas):
@@ -140,7 +168,7 @@ class WsFbref:
     
 
     def retorna_sub_cabecalhos_tabelas(self, tabelas):
-        sub_cabecalhos = {}
+        sub_cabecalhos = []
         for tabela in tabelas:
                 thread =  tabela.find_element(By.TAG_NAME, 'thead')
                 
@@ -150,11 +178,9 @@ class WsFbref:
                 soup_tr_over_header = BeautifulSoup(tr_over_header.get_attribute('outerHTML'), 'html.parser')
                 ths_over_header = soup_tr_over_header.find_all('th')[1:]
                 
-                
                 for th in ths_over_header:
                     if str(th.get_text()) != '':
-                        sub_cabecalhos[str(th.get_text()).upper()] = int(th['colspan'])
-                        
+                        sub_cabecalhos.append([str(th.get_text()), int(th['colspan'])])
         return sub_cabecalhos
             
 
