@@ -13,16 +13,16 @@ from random import randint
 
 class WsFbref:
     def __init__(self):
-        self.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:97.0) Gecko/20100101 Firefox/97.0'
+        user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:97.0) Gecko/20100101 Firefox/97.0'
         
-        self.edge_driver_path = './driver/msedgedriver.exe'
+        edge_driver_path = './driver/msedgedriver.exe'
         
-        self.edge_service = Service(self.edge_driver_path)
+        edge_service = Service(edge_driver_path)
 
-        self.edge_options = Options()
-        self.edge_options.add_argument(f'user-agent={self.user_agent}')
+        edge_options = Options()
+        edge_options.add_argument(f'user-agent={user_agent}')
         
-        self.driver = Edge(service=self.edge_service, options=self.edge_options)
+        self.driver = Edge(service=edge_service, options=edge_options)
         self.driver.implicitly_wait(3.5)
 
         self.url_base = "https://fbref.com"
@@ -103,6 +103,7 @@ class WsFbref:
     
     def retorna_estatisticas_por_time(self, times, dados):
         for time in times:
+            print(time)
             for camp, data, link in zip(dados[time]['campeonatos'][:2], dados[time]['datas'][:2], dados[time]['links'][:2]):
                 self.driver.get(link)
 
@@ -113,14 +114,17 @@ class WsFbref:
                 tabelas_home, tabelas_away = self.retorna_tabela_home_e_away()
                 print(camp, data, homeTeam, awayTeam, fthg, ftag)
                 cabecalhos = self.retorna_cabecalhos_tabela()
-                #print(cabecalhos)
-                sub_cabecalhos = self.retorna_sub_cabecalhos_tabelas(tabelas_home)
-                #print(sub_cabecalhos)     
-                variaveis = self.retorna_variaveis_todas_tabelas(tabelas_home)
-                #print(variaveis)
-                #self.retorna_variaveis_renomeadas(cabecalhos, sub_cabecalhos, variaveis)
-                valores_variaveis_home = self.retorna_valores_variaveis(tabelas_home)
-                print(valores_variaveis_home)
+                
+                sub_cabecalhos_home = self.retorna_sub_cabecalhos_tabelas(tabelas_home)
+                variaveis_home = self.retorna_variaveis_todas_tabelas(tabelas_home)
+                variaveis_renomeadas_home = self.retorna_variaveis_renomeadas(cabecalhos, sub_cabecalhos_home, variaveis_home)
+
+                sub_cabecalhos_away = self.retorna_sub_cabecalhos_tabelas(tabelas_away)
+                variaveis_away = self.retorna_variaveis_todas_tabelas(tabelas_away)
+                variaveis_renomeadas_away = self.retorna_variaveis_renomeadas(cabecalhos, sub_cabecalhos_away, variaveis_away)
+
+                print(variaveis_renomeadas_home == variaveis_renomeadas_away)
+
 
 
     def retorna_valores_variaveis(self, tabelas):
@@ -130,7 +134,7 @@ class WsFbref:
             
             soup_tfoot = BeautifulSoup(tfoot.get_attribute('outerHTML'), 'html.parser')
             tds = soup_tfoot.find_all('td')
-            tds = tds[5:]
+                      
             for td in tds:
                 try: 
                     valores.append(float(td.get_text()))
@@ -140,17 +144,46 @@ class WsFbref:
 
             
     def retorna_variaveis_renomeadas(self, cabecalhos, sub_cabecalhos, variaveis):
-        sum = 0
-        for k, v in zip([item[0] for item in sub_cabecalhos], [item[1] for item in sub_cabecalhos]):
-            print(k, v)
-            sum += v
-        #print(sum, len(variaveis))
-        #print(sum == len(variaveis))
+        for cabecalho, tabela in list(zip(cabecalhos, sub_cabecalhos.keys())):
+            for index, x in enumerate(sub_cabecalhos[tabela]):
+                x[0] = f'{cabecalho}-{x[0]}'
+                sub_cabecalhos[tabela][index] = x
+        
+        lista_variaveis = []
+        # tirando as variaveis da matriz para um array
+        for x in variaveis:
+            for variavel in x:
+                lista_variaveis.append(variavel)
 
-              
+        variaveis_renomeadas = []
+
+        intervalos = self.retorna_intervalos_entre_cabecalhos(sub_cabecalhos)
+        
+        for sub_cabecalho, (inicio, fim) in intervalos:
+            for i in range(inicio, fim):
+                if not 'remove' in sub_cabecalho:
+                    try:
+                        string = f'{sub_cabecalho}-{lista_variaveis[i]}'.replace(' ', '').upper()
+                        variaveis_renomeadas.append(string)
+                    except (IndexError):
+                        pass
+        
+        return variaveis_renomeadas
+
+    def retorna_strings_abreviadas(self, strings):
+        strings_abreviadas = []
+        
+        for string in strings:
+            string.replace(' ', '')
+            inicio, meio, fim = string[0], string[round((len(string)/2))], string[-1]
+            string = inicio+meio+fim
+            strings_abreviadas.append(string)
+        return strings_abreviadas
+            
+
     def retorna_variaveis_todas_tabelas(self, tabelas):
         variaveis = []
-                
+        
         for tabela in tabelas:
             thread =  tabela.find_element(By.TAG_NAME, 'thead')
             
@@ -159,30 +192,63 @@ class WsFbref:
             
             soup_ths = BeautifulSoup(tr.get_attribute('outerHTML'), 'html.parser')
             ths = soup_ths.find_all('th', attrs={'scope':'col'})
-            
-            for th in ths:
-                th = str(th.get_text())
-                if th.lower() not in ['', '#', 'player', 'nation', 'min', 'pos', 'age']:
-                    variaveis.append(th.upper())
+            ths = [th.get_text() for th in ths]
+            variaveis.append(ths)
+        
         return variaveis
+
+
+    def retorna_intervalos_entre_cabecalhos(self, sub_cabecalhos):
+        l = []
+        for k, v in sub_cabecalhos.items():
+            for item in v:
+                l.append(item)
+
+        keys = [item[0] for item in l]
+        values = [item[1] for item in l]
+        
+        sum = 0
+        intervalos = []
+        for k, v in zip(keys, values):
+            intervalos.append([k, [sum, sum+v]])
+            sum += v
+        
+        return intervalos
     
 
     def retorna_sub_cabecalhos_tabelas(self, tabelas):
-        sub_cabecalhos = []
-        for tabela in tabelas:
-                thread =  tabela.find_element(By.TAG_NAME, 'thead')
-                
-                trs = thread.find_elements(By.TAG_NAME, 'tr')
-
-                tr_over_header = trs[0]
-                soup_tr_over_header = BeautifulSoup(tr_over_header.get_attribute('outerHTML'), 'html.parser')
-                ths_over_header = soup_tr_over_header.find_all('th')[1:]
-                
-                for th in ths_over_header:
-                    if str(th.get_text()) != '':
-                        sub_cabecalhos.append([str(th.get_text()), int(th['colspan'])])
-        return sub_cabecalhos
+        dados = {}
+        
+        for index, tabela in enumerate(tabelas, 1):
+            sub_cabecalhos = []
+            thread =  tabela.find_element(By.TAG_NAME, 'thead')
             
+            trs = thread.find_elements(By.TAG_NAME, 'tr')
+
+            tr_over_header = trs[0]
+            soup_tr_over_header = BeautifulSoup(tr_over_header.get_attribute('outerHTML'), 'html.parser')
+            ths_over_header = soup_tr_over_header.find_all('th')
+            
+            for th in ths_over_header:
+                if str(th.get_text()) == '':
+                    try:
+                        sub_cabecalhos.append(['Generic', int(th['colspan'])])
+                    except (KeyError):
+                        sub_cabecalhos.append(['Generic', 1])
+                else:
+                    try:
+                        sub_cabecalhos.append([str(th.get_text()), int(th['colspan'])])
+                    except:
+                        pass
+            dados[f'tabela-{index}'] = sub_cabecalhos
+        
+        #dados = {k:v[1:] for k, v in dados.items()} 
+
+        for k, v in dados.items():
+            dados[k][0][0] = 'remove'
+    
+        return dados    
+    
 
     def retorna_cabecalhos_tabela(self):
         cabecalhos = []
@@ -194,6 +260,7 @@ class WsFbref:
         except:
             pass   
         return cabecalhos
+
 
     def retorna_tabela_home_e_away(self):        
         divs = self.driver.find_elements(By.XPATH, '//div[@class="table_wrapper tabbed"]')
@@ -241,9 +308,9 @@ if __name__ == '__main__':
     
     info = obj.retorna_info_time()
     
-    dados = obj.retorna_partidas_por_time(info['times'][:1], info['links'][:1])
+    dados = obj.retorna_partidas_por_time(info['times'], info['links'])
 
-    obj.retorna_estatisticas_por_time(info['times'][:1], dados)
+    obj.retorna_estatisticas_por_time(info['times'], dados)
    
 
 
