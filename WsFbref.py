@@ -104,7 +104,7 @@ class WsFbref:
     def retorna_estatisticas_por_time(self, times, dados):
         for time in times:
             print(time)
-            for camp, data, link in zip(dados[time]['campeonatos'][:2], dados[time]['datas'][:2], dados[time]['links'][:2]):
+            for camp, data, link in zip(dados[time]['campeonatos'][:4], dados[time]['datas'][:4], dados[time]['links'][:4]):
                 self.driver.get(link)
 
                 homeTeam, awayTeam = self.retorna_home_e_away()
@@ -123,24 +123,44 @@ class WsFbref:
                 variaveis_away = self.retorna_variaveis_todas_tabelas(tabelas_away)
                 variaveis_renomeadas_away = self.retorna_variaveis_renomeadas(cabecalhos, sub_cabecalhos_away, variaveis_away)
 
-                print(variaveis_renomeadas_home == variaveis_renomeadas_away)
+                valores_variaveis_home = self.retorna_valores_variaveis(tabelas_home, sub_cabecalhos_home)
+                valores_variaveis_away = self.retorna_valores_variaveis(tabelas_away, sub_cabecalhos_away)
+                #print(variaveis_renomeadas_home == variaveis_renomeadas_away)
+                print(len(variaveis_renomeadas_home), len(valores_variaveis_home))
+                print(len(variaveis_renomeadas_away), len(valores_variaveis_away))
+                print(len(variaveis_renomeadas_home) == len(valores_variaveis_home))
+                print(len(variaveis_renomeadas_away) == len(valores_variaveis_away))
+                print(variaveis_renomeadas_home)
+                print(valores_variaveis_home)
 
 
-
-    def retorna_valores_variaveis(self, tabelas):
+    def retorna_valores_variaveis(self, tabelas, sub_cabecalhos):
         valores = []
         for tabela in tabelas:
             tfoot = tabela.find_element(By.TAG_NAME, 'tfoot')
             
             soup_tfoot = BeautifulSoup(tfoot.get_attribute('outerHTML'), 'html.parser')
             tds = soup_tfoot.find_all('td')
-                      
-            for td in tds:
+            ths = soup_tfoot.find_all('th')
+            ths.extend(tds)          
+            
+            for th in ths:
                 try: 
-                    valores.append(float(td.get_text()))
+                    valores.append(float(th.get_text()))
                 except:
                     valores.append(None)
-        return valores
+
+        intervalos = self.retorna_intervalos_entre_sub_cabecalhos(sub_cabecalhos)
+
+        valores_filtrados = []    
+        for sub_cabecalho, (inicio, fim) in intervalos:
+            for i in range(inicio, fim):
+                if not 'remove' in sub_cabecalho:
+                    try:
+                        valores_filtrados.append(valores[i])
+                    except (IndexError):
+                        pass
+        return valores_filtrados
 
             
     def retorna_variaveis_renomeadas(self, cabecalhos, sub_cabecalhos, variaveis):
@@ -157,7 +177,7 @@ class WsFbref:
 
         variaveis_renomeadas = []
 
-        intervalos = self.retorna_intervalos_entre_cabecalhos(sub_cabecalhos)
+        intervalos = self.retorna_intervalos_entre_sub_cabecalhos(sub_cabecalhos)
         
         for sub_cabecalho, (inicio, fim) in intervalos:
             for i in range(inicio, fim):
@@ -169,6 +189,7 @@ class WsFbref:
                         pass
         
         return variaveis_renomeadas
+
 
     def retorna_strings_abreviadas(self, strings):
         strings_abreviadas = []
@@ -198,7 +219,7 @@ class WsFbref:
         return variaveis
 
 
-    def retorna_intervalos_entre_cabecalhos(self, sub_cabecalhos):
+    def retorna_intervalos_entre_sub_cabecalhos(self, sub_cabecalhos):
         l = []
         for k, v in sub_cabecalhos.items():
             for item in v:
@@ -308,9 +329,9 @@ if __name__ == '__main__':
     
     info = obj.retorna_info_time()
     
-    dados = obj.retorna_partidas_por_time(info['times'], info['links'])
+    dados = obj.retorna_partidas_por_time(info['times'][:1], info['links'][:1])
 
-    obj.retorna_estatisticas_por_time(info['times'], dados)
+    obj.retorna_estatisticas_por_time(info['times'][:1], dados)
    
 
 
