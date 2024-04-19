@@ -112,26 +112,37 @@ class WsFbref:
                 fthg, ftag = self.retorna_gols_home_e_away_team()
                
                 tabelas_home, tabelas_away = self.retorna_tabela_home_e_away()
-                print(camp, data, homeTeam, awayTeam, fthg, ftag)
+                nomes_valores_base = ['CAMP', 'DATA', 'HomeTeam', 'AwayTeam', 'FTG-H', 'FTG-A']
+                valores_base = [camp, data, homeTeam, awayTeam, int(fthg), int(ftag)]
                 cabecalhos = self.retorna_cabecalhos_tabela()
                 
                 sub_cabecalhos_home = self.retorna_sub_cabecalhos_tabelas(tabelas_home)
                 variaveis_home = self.retorna_variaveis_todas_tabelas(tabelas_home)
-                variaveis_renomeadas_home = self.retorna_variaveis_renomeadas(cabecalhos, sub_cabecalhos_home, variaveis_home)
+                variaveis_renomeadas_home = self.retorna_variaveis_renomeadas(cabecalhos, sub_cabecalhos_home, variaveis_home, home_or_away='H')
 
                 sub_cabecalhos_away = self.retorna_sub_cabecalhos_tabelas(tabelas_away)
                 variaveis_away = self.retorna_variaveis_todas_tabelas(tabelas_away)
-                variaveis_renomeadas_away = self.retorna_variaveis_renomeadas(cabecalhos, sub_cabecalhos_away, variaveis_away)
+                variaveis_renomeadas_away = self.retorna_variaveis_renomeadas(cabecalhos, sub_cabecalhos_away, variaveis_away, home_or_away='A')
+
 
                 valores_variaveis_home = self.retorna_valores_variaveis(tabelas_home, sub_cabecalhos_home)
                 valores_variaveis_away = self.retorna_valores_variaveis(tabelas_away, sub_cabecalhos_away)
-                #print(variaveis_renomeadas_home == variaveis_renomeadas_away)
-                print(len(variaveis_renomeadas_home), len(valores_variaveis_home))
-                print(len(variaveis_renomeadas_away), len(valores_variaveis_away))
-                print(len(variaveis_renomeadas_home) == len(valores_variaveis_home))
-                print(len(variaveis_renomeadas_away) == len(valores_variaveis_away))
-                print(variaveis_renomeadas_home)
-                print(valores_variaveis_home)
+                
+                variaveis_renomeadas_home.extend(variaveis_renomeadas_away)
+                valores_variaveis_home.extend(valores_variaveis_away)
+
+                variaveis = variaveis_renomeadas_home[:]
+                valores_variaveis = valores_variaveis_home[:]
+
+                variaveis = nomes_valores_base + variaveis
+                valores_variaveis = valores_base + valores_variaveis
+                
+                data = self.juntar_nomes_variaveis_com_valores(variaveis, valores_variaveis)
+                print(data)
+
+    def juntar_nomes_variaveis_com_valores(self, nomes_variaveis, valores_variaveis):
+        return {k:v for k, v in zip(nomes_variaveis, valores_variaveis)}
+             
 
 
     def retorna_valores_variaveis(self, tabelas, sub_cabecalhos):
@@ -163,7 +174,10 @@ class WsFbref:
         return valores_filtrados
 
             
-    def retorna_variaveis_renomeadas(self, cabecalhos, sub_cabecalhos, variaveis):
+    def retorna_variaveis_renomeadas(self, cabecalhos, sub_cabecalhos, variaveis, home_or_away):
+        
+        home_or_away = 'H' if home_or_away.lower()[0] == 'h' else 'A'
+
         for cabecalho, tabela in list(zip(cabecalhos, sub_cabecalhos.keys())):
             for index, x in enumerate(sub_cabecalhos[tabela]):
                 x[0] = f'{cabecalho}-{x[0]}'
@@ -183,7 +197,7 @@ class WsFbref:
             for i in range(inicio, fim):
                 if not 'remove' in sub_cabecalho:
                     try:
-                        string = f'{sub_cabecalho}-{lista_variaveis[i]}'.replace(' ', '').upper()
+                        string = f'{sub_cabecalho}-{lista_variaveis[i]}-{home_or_away}'.replace(' ', '').upper()
                         variaveis_renomeadas.append(string)
                     except (IndexError):
                         pass
