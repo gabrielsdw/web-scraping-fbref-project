@@ -1,28 +1,18 @@
-from selenium.webdriver import  Edge
+from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.edge.options import Options
 from selenium.webdriver.edge.service import Service
-from time import sleep
-import pandas as pd
-import re
-import os
 from bs4 import BeautifulSoup
-from random import randint
-
+import os
 
 
 class WsFbref:
     def __init__(self):
-        user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:97.0) Gecko/20100101 Firefox/97.0'
         
-        edge_driver_path = './driver/msedgedriver.exe'
+        #self.service = Service(executable_path=r'./chrome.exe')
+        self.path_driver = r'C:/Users/gabri/OneDrive/Documentos/web-scraping-fbref-project/msedgedriver.exe'
+        self.service = Service(executable_path=self.path_driver)
+        self.driver = webdriver.Edge(service=self.service)
         
-        edge_service = Service(edge_driver_path)
-
-        edge_options = Options()
-        edge_options.add_argument(f'user-agent={user_agent}')
-        
-        self.driver = Edge(service=edge_service, options=edge_options)
         self.driver.implicitly_wait(3.5)
 
         self.url_base = "https://fbref.com"
@@ -31,15 +21,16 @@ class WsFbref:
 
     def retorna_info_time(self):
         self.driver.get(self.url_camp)
-        
-        links_times = self.driver.find_elements(By.XPATH, "//td[@data-stat='team']")
+        print(self.driver.get(self.url_camp))
 
+        links_times = self.driver.find_elements(By.XPATH, "//td[@data-stat='team']")
+        #print(links_times)
         times, links, codes = list(), list(), list()
 
         for link in links_times:
             tag = link.find_element(By.TAG_NAME, 'a')
             
-            time = tag.text
+            time = str(tag.text)
             link = tag.get_attribute('href')
 
             code = link.split('/')[-2]
@@ -59,7 +50,7 @@ class WsFbref:
             'links':links,
             'codes':codes
         }
-      
+        print(dados)
         return dados
 
 
