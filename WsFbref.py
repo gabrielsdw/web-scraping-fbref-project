@@ -3,28 +3,28 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.edge.service import Service
 from bs4 import BeautifulSoup
 import os
+from decorators import timer
+from bd import Db
 
 
 class WsFbref:
-    def __init__(self):
-        
-        #self.service = Service(executable_path=r'./chrome.exe')
-        self.path_driver = r'C:/Users/gabri/OneDrive/Documentos/web-scraping-fbref-project/msedgedriver.exe'
-        self.service = Service(executable_path=self.path_driver)
-        self.driver = webdriver.Edge(service=self.service)
-        
+    def __init__(self, db):
+        path_driver = r'./driver/msedgedriver.exe'
+        service = Service(executable_path=path_driver)
+
+        self.driver = webdriver.Edge(service=service)
         self.driver.implicitly_wait(3.5)
 
         self.url_base = "https://fbref.com"
         self.url_camp = f"{self.url_base}/en/comps/9/Premier-League-Stats"
 
+        self.db = db
 
     def retorna_info_time(self):
         self.driver.get(self.url_camp)
-        print(self.driver.get(self.url_camp))
-
+        
         links_times = self.driver.find_elements(By.XPATH, "//td[@data-stat='team']")
-        #print(links_times)
+        
         times, links, codes = list(), list(), list()
 
         for link in links_times:
@@ -50,7 +50,6 @@ class WsFbref:
             'links':links,
             'codes':codes
         }
-        print(dados)
         return dados
 
 
@@ -94,8 +93,8 @@ class WsFbref:
     
     def retorna_estatisticas_por_time(self, times, dados):
         for time in times:
-            print(time)
-            for camp, data, link in zip(dados[time]['campeonatos'][:4], dados[time]['datas'][:4], dados[time]['links'][:4]):
+            dados_partidas_time = []
+            for camp, data, link in zip(dados[time]['campeonatos'][:], dados[time]['datas'][:], dados[time]['links'][:]):
                 self.driver.get(link)
 
                 homeTeam, awayTeam = self.retorna_home_e_away()
@@ -103,8 +102,10 @@ class WsFbref:
                 fthg, ftag = self.retorna_gols_home_e_away_team()
                
                 tabelas_home, tabelas_away = self.retorna_tabela_home_e_away()
-                nomes_valores_base = ['CAMP', 'DATA', 'HomeTeam', 'AwayTeam', 'FTG-H', 'FTG-A']
-                valores_base = [camp, data, homeTeam, awayTeam, int(fthg), int(ftag)]
+                
+                nomes_valores_base = ['LINK', 'CAMP', 'DATA', 'HomeTeam', 'AwayTeam', 'FTG-H', 'FTG-A']
+                valores_base = [link, camp, data, homeTeam, awayTeam, int(fthg), int(ftag)]
+                print(valores_base)
                 cabecalhos = self.retorna_cabecalhos_tabela()
                 
                 sub_cabecalhos_home = self.retorna_sub_cabecalhos_tabelas(tabelas_home)
@@ -129,11 +130,13 @@ class WsFbref:
                 valores_variaveis = valores_base + valores_variaveis
                 
                 data = self.juntar_nomes_variaveis_com_valores(variaveis, valores_variaveis)
-                print(data)
-
+                
+                dados_partidas_time.append(data)
+            self.db.insert_many_db(dados_partidas_time)
+                
+    
     def juntar_nomes_variaveis_com_valores(self, nomes_variaveis, valores_variaveis):
         return {k:v for k, v in zip(nomes_variaveis, valores_variaveis)}
-             
 
 
     def retorna_valores_variaveis(self, tabelas, sub_cabecalhos):
@@ -268,9 +271,7 @@ class WsFbref:
                         pass
             dados[f'tabela-{index}'] = sub_cabecalhos
         
-        #dados = {k:v[1:] for k, v in dados.items()} 
-
-        for k, v in dados.items():
+        for k in dados.keys():
             dados[k][0][0] = 'remove'
     
         return dados    
@@ -325,18 +326,24 @@ class WsFbref:
         fthg, ftag, *_ = lista
 
         return fthg, ftag
-        
     
+    
+    @timer
+    def run(self):
+        
+        info = self.retorna_info_time()
+        
+        dados = self.retorna_partidas_por_time(info['times'][:], info['links'][:])
+
+        self.retorna_estatisticas_por_time(info['times'][:], dados)
 
 
 if __name__ == '__main__':
-    obj = WsFbref()
+    db = Db('gabrielsdw', '54321', 'fbref', 'PremierLeague')
     
-    info = obj.retorna_info_time()
+    obj = WsFbref(db)
+    obj.run()
     
-    dados = obj.retorna_partidas_por_time(info['times'][:1], info['links'][:1])
-
-    obj.retorna_estatisticas_por_time(info['times'][:1], dados)
    
 
 
