@@ -2,23 +2,25 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.edge.service import Service
 from bs4 import BeautifulSoup
-import os
+from datetime import datetime
+from unidecode import unidecode
+
 from decorators import timer
 from bd import Db
 
-
 class WsFbref:
-    def __init__(self, db):
+    def __init__(self, url_camp, db):
         path_driver = r'./driver/msedgedriver.exe'
         service = Service(executable_path=path_driver)
 
         self.driver = webdriver.Edge(service=service)
         self.driver.implicitly_wait(3.5)
 
-        self.url_base = "https://fbref.com"
-        self.url_camp = f"{self.url_base}/en/comps/9/Premier-League-Stats"
+        
+        self.url_camp = url_camp
 
         self.db = db
+
 
     def retorna_info_time(self):
         self.driver.get(self.url_camp)
@@ -51,7 +53,40 @@ class WsFbref:
             'codes':codes
         }
         return dados
+    
 
+    def retorna_tempos_dos_gols(self, home_or_away):
+        div_gols = BeautifulSoup(self.driver.page_source, 'html.parser')
+        
+        div_gols = div_gols.find('div', attrs={'class':'event', 'id':'a' if home_or_away.lower()== 'home' else 'b'})
+        div_gols = div_gols.find_all('div', attrs={'class':''})
+        
+        for div in div_gols:
+            if not (div.find('div', attrs={'class':'event_icon goal'}) or  
+                    div.find('div', attrs={'class':'event_icon penalty_goal'}) or  
+                    div.find('div', attrs={'class':'event_icon own_goal'})
+                    ):
+                #print(div.find('div').prettify())
+                div_gols.remove(div)
+        
+        gols_full_time = [str(item.get_text()).split('·')[1].strip() for item in div_gols]
+        
+        gols_first_time = []
+        gols_second_time = []
+
+        for gol in gols_full_time:
+            if (str(gol[0]).isnumeric() and str(gol[1]).isnumeric()):
+                tempo_gol = int(gol[0] + gol[1])
+            else:
+                tempo_gol = int('0' + gol[0])
+
+            if tempo_gol <= 45:
+                gols_first_time.append(gol)
+            else:
+                gols_second_time.append(gol)
+        
+        return gols_full_time, gols_first_time, gols_second_time
+        
 
     def retorna_partidas_por_time(self, times, links_times):
         dados = {}
@@ -93,19 +128,38 @@ class WsFbref:
     
     def retorna_estatisticas_por_time(self, times, dados):
         for time in times:
+            print(time)
             dados_partidas_time = []
             for camp, data, link in zip(dados[time]['campeonatos'][:], dados[time]['datas'][:], dados[time]['links'][:]):
                 self.driver.get(link)
-
+                print(link)
+                
                 homeTeam, awayTeam = self.retorna_home_e_away()
                 
-                fthg, ftag = self.retorna_gols_home_e_away_team()
-               
-                tabelas_home, tabelas_away = self.retorna_tabela_home_e_away()
+                gols_home_full_time, gols_home_first_time, gols_home_second_time = self.retorna_tempos_dos_gols('home')
+                gols_away_full_time, gols_away_first_time, gols_away_second_time = self.retorna_tempos_dos_gols('away')
                 
-                nomes_valores_base = ['LINK', 'CAMP', 'DATA', 'HomeTeam', 'AwayTeam', 'FTG-H', 'FTG-A']
-                valores_base = [link, camp, data, homeTeam, awayTeam, int(fthg), int(ftag)]
-                print(valores_base)
+                qtd_gols_home_full_time, qtd_gols_home_first_time, qtd_gols_home_second_time = len(gols_home_full_time), len(gols_home_first_time), len(gols_home_second_time)
+                qtd_gols_away_full_time, qtd_gols_away_first_time, qtd_gols_away_second_time = len(gols_away_full_time), len(gols_away_first_time), len(gols_away_second_time)
+
+                """
+                print('Home')
+                print(gols_home_full_time, gols_home_first_time, gols_home_second_time)
+                print(qtd_gols_home_full_time, qtd_gols_home_first_time, qtd_gols_home_second_time)
+                print('Away')
+                print(gols_away_full_time, gols_away_first_time, gols_away_second_time)
+                print(qtd_gols_away_full_time, qtd_gols_away_first_time, qtd_gols_away_second_time)
+                """
+
+                tabelas_home, tabelas_away = self.retorna_tabela_home_e_away()
+
+                createdAt = str(datetime.now().date())
+                
+                nomes_valores_base = ['CreatedAt', 'Link', 'Camp', 'Date', 'HomeTeam', 'AwayTeam', 'NumberGolsFullTime-H', 'NumberGolsFirstTime-H', 'NumberGoalsSecondTime-H' ,'FullTimeGoals-H', 'FirstTimeGoals-H', 'SecondTimeGoals-H', 'NumberGoalsFullTime-A', 'NumberGoalsFirstTime-A', 'NumberGoalsSecondTime-A','FullTimeGoals-A', 'FirstTimeGoals-A', 'SecondTimeGoals-A',]
+                
+                valores_base = [createdAt, link, camp, data, homeTeam, awayTeam, qtd_gols_home_full_time, qtd_gols_home_first_time, qtd_gols_home_second_time, gols_home_full_time, gols_home_first_time, gols_home_second_time, qtd_gols_away_full_time, qtd_gols_away_first_time, qtd_gols_away_second_time, gols_away_full_time, gols_away_first_time, gols_away_second_time]
+                
+                    
                 cabecalhos = self.retorna_cabecalhos_tabela()
                 
                 sub_cabecalhos_home = self.retorna_sub_cabecalhos_tabelas(tabelas_home)
@@ -132,7 +186,9 @@ class WsFbref:
                 data = self.juntar_nomes_variaveis_com_valores(variaveis, valores_variaveis)
                 
                 dados_partidas_time.append(data)
+                
             self.db.insert_many_db(dados_partidas_time)
+            print('\n')
                 
     
     def juntar_nomes_variaveis_com_valores(self, nomes_variaveis, valores_variaveis):
@@ -198,17 +254,6 @@ class WsFbref:
         
         return variaveis_renomeadas
 
-
-    def retorna_strings_abreviadas(self, strings):
-        strings_abreviadas = []
-        
-        for string in strings:
-            string.replace(' ', '')
-            inicio, meio, fim = string[0], string[round((len(string)/2))], string[-1]
-            string = inicio+meio+fim
-            strings_abreviadas.append(string)
-        return strings_abreviadas
-            
 
     def retorna_variaveis_todas_tabelas(self, tabelas):
         variaveis = []
@@ -310,23 +355,12 @@ class WsFbref:
         teams = ''.join(teams)
         teams = teams.split('vs.')
         
-        homeTeam, awayTeam = teams
+        try:
+            homeTeam, awayTeam = teams
+            return str(unidecode(homeTeam.strip().lower().replace(' ', '_'))), str(unidecode(awayTeam.strip().lower().replace(' ', '_')))
+        except:
+            return None, None
         
-        return homeTeam.strip(), awayTeam.strip()
-    
-
-    def retorna_gols_home_e_away_team(self):
-        scores = self.driver.find_elements(By.XPATH, '//div[@class="score"]')
-            
-        lista = []
-
-        for score in scores:
-            lista.append(str(score.text))
-
-        fthg, ftag, *_ = lista
-
-        return fthg, ftag
-    
     
     @timer
     def run(self):
@@ -339,11 +373,9 @@ class WsFbref:
 
 
 if __name__ == '__main__':
-    db = Db('gabrielsdw', '54321', 'fbref', 'PremierLeague')
+    db = Db('gabrielsdw', '54321', 'fbref', 'LaLiga')
     
-    obj = WsFbref(db)
+    obj = WsFbref('https://fbref.com/en/comps/12/La-Liga-Stats', db)
     obj.run()
-    
+     
    
-
-
