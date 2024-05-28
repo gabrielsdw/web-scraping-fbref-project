@@ -9,17 +9,18 @@ from decorators import timer
 from bd import Db
 
 class WsFbref:
-    def __init__(self, url_camp, db: Db = None):
+    def __init__(self, url_camp: str = None, db: Db = None, notes: bool = False):
         path_driver = r'./driver/msedgedriver.exe'
         service = Service(executable_path=path_driver)
 
         self.driver = webdriver.Edge(service=service)
         self.driver.implicitly_wait(3.5)
 
-        
         self.url_camp = url_camp
 
         self.db = db
+
+        self.notes = notes
 
 
     def retorna_info_time(self):
@@ -42,7 +43,7 @@ class WsFbref:
             codes.append(code)
 
         # tava vindo informações repetidas, não sei o por que, para resolver
-        # peguei apenas os 20 primeiros elementos, pois o campeonato só tem 20 times
+        # peguei apenas os 20 primeiros elementos, pois o campeonato só tem 20 times ou menos
         times = times[:20]
         links = links[:len(times)]
         codes = codes[:len(times)]
@@ -64,8 +65,7 @@ class WsFbref:
         for div in div_gols:
             if not (div.find('div', attrs={'class':'event_icon goal'}) or  
                     div.find('div', attrs={'class':'event_icon penalty_goal'}) or  
-                    div.find('div', attrs={'class':'event_icon own_goal'})
-                    ):
+                    div.find('div', attrs={'class':'event_icon own_goal'})):
                 #print(div.find('div').prettify())
                 div_gols.remove(div)
         
@@ -130,7 +130,7 @@ class WsFbref:
         for time in times:
             print(time)
             dados_partidas_time = []
-            for camp, data, link in zip(dados[time]['campeonatos'][1:2], dados[time]['datas'][1:2], dados[time]['links'][1:2]):
+            for camp, data, link in zip(dados[time]['campeonatos'][:], dados[time]['datas'][:], dados[time]['links'][:]):
                 self.driver.get(link)
                 print(link)
                 
@@ -281,22 +281,25 @@ class WsFbref:
         
             variaveis.append(ths)
             
-        
-        a = []
-        for _ in variaveis:
-            for variavel in _:
-                a.append(variavel)
-        
-        b = []
-        for variavel, desc in zip(a, descricoes):
-            if f'{variavel} - {desc}' not in b:
-                b.append(f'{variavel} - {desc}')
+        # Código para criar o notes.txt
+        if self.notes:
+            variaveis_temporarias = []
+            for linha in variaveis:
+                for variavel in linha:
+                    variaveis_temporarias.append(variavel)
+            
+            variaveis_notes = []
+            for variavel, desc in zip(variaveis_temporarias, descricoes):
+                if f'{variavel} - {desc}' not in variaveis_notes:
+                    variaveis_notes.append(f'{variavel} - {desc}')
 
+            
+            with open('notes.txt', 'w+') as file:
+                for line in variaveis_notes:
+                    file.write(f'{line}\n')
         
-        with open('notes.txt', 'w+') as file:
-            for line in b:
-                file.write(f'{line}\n')
-     
+        #
+
         return variaveis
 
 
@@ -392,18 +395,25 @@ class WsFbref:
     
     @timer
     def run(self):
-        
         info = self.retorna_info_time()
-        
-        dados = self.retorna_partidas_por_time(info['times'][:1], info['links'][:1])
+        dados = self.retorna_partidas_por_time(info['times'][:], info['links'][:])
+        self.retorna_estatisticas_por_time(info['times'][:], dados)
 
-        self.retorna_estatisticas_por_time(info['times'][:1], dados)
+
+    @timer
+    def retorna_estatisticas_do_time(self, name_team: str = None, link_team: str = None):
+        dados = self.retorna_partidas_por_time([name_team,], [link_team,])
+        self.retorna_estatisticas_por_time([name_team,], dados)
+
+        
+
 
 
 if __name__ == '__main__':
     db = Db('gabrielsdw', '54321', 'fbref', 'BundesLiga')
     
     obj = WsFbref('https://fbref.com/en/comps/20/Bundesliga-Stats')
-    obj.run()
+    #obj.run()
+    obj.retorna_estatisticas_do_time(name_team='Man city', link_team='https://fbref.com/en/squads/b8fd03ef/Manchester-City-Stats')
      
    
