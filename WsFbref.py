@@ -9,7 +9,7 @@ from decorators import timer
 from bd import Db
 
 class WsFbref:
-    def __init__(self, url_camp, db):
+    def __init__(self, url_camp, db: Db = None):
         path_driver = r'./driver/msedgedriver.exe'
         service = Service(executable_path=path_driver)
 
@@ -130,7 +130,7 @@ class WsFbref:
         for time in times:
             print(time)
             dados_partidas_time = []
-            for camp, data, link in zip(dados[time]['campeonatos'][:], dados[time]['datas'][:], dados[time]['links'][:]):
+            for camp, data, link in zip(dados[time]['campeonatos'][1:2], dados[time]['datas'][1:2], dados[time]['links'][1:2]):
                 self.driver.get(link)
                 print(link)
                 
@@ -186,9 +186,9 @@ class WsFbref:
                 data = self.juntar_nomes_variaveis_com_valores(variaveis, valores_variaveis)
                 
                 dados_partidas_time.append(data)
-                
-            self.db.insert_many_db(dados_partidas_time)
-            print('\n')
+            
+            if self.db is not None:
+                self.db.insert_many_db(dados_partidas_time)
                 
     
     def juntar_nomes_variaveis_com_valores(self, nomes_variaveis, valores_variaveis):
@@ -257,7 +257,8 @@ class WsFbref:
 
     def retorna_variaveis_todas_tabelas(self, tabelas):
         variaveis = []
-        
+        descricoes = []
+
         for tabela in tabelas:
             thread =  tabela.find_element(By.TAG_NAME, 'thead')
             
@@ -266,9 +267,36 @@ class WsFbref:
             
             soup_ths = BeautifulSoup(tr.get_attribute('outerHTML'), 'html.parser')
             ths = soup_ths.find_all('th', attrs={'scope':'col'})
+            
+            for desc in ths:
+                try:
+                    desc = desc['data-tip']
+                    desc = desc.split('</strong>')[0].replace('<strong>', '').split('<br>')[0]
+                    #print(desc)
+                    descricoes.append(desc)
+                    
+                except Exception as e:
+                    descricoes.append(None)
             ths = [th.get_text() for th in ths]
-            variaveis.append(ths)
         
+            variaveis.append(ths)
+            
+        
+        a = []
+        for _ in variaveis:
+            for variavel in _:
+                a.append(variavel)
+        
+        b = []
+        for variavel, desc in zip(a, descricoes):
+            if f'{variavel} - {desc}' not in b:
+                b.append(f'{variavel} - {desc}')
+
+        
+        with open('notes.txt', 'w+') as file:
+            for line in b:
+                file.write(f'{line}\n')
+     
         return variaveis
 
 
@@ -367,15 +395,15 @@ class WsFbref:
         
         info = self.retorna_info_time()
         
-        dados = self.retorna_partidas_por_time(info['times'][:], info['links'][:])
+        dados = self.retorna_partidas_por_time(info['times'][:1], info['links'][:1])
 
-        self.retorna_estatisticas_por_time(info['times'][:], dados)
+        self.retorna_estatisticas_por_time(info['times'][:1], dados)
 
 
 if __name__ == '__main__':
-    db = Db('gabrielsdw', '54321', 'fbref', 'LaLiga')
+    db = Db('gabrielsdw', '54321', 'fbref', 'BundesLiga')
     
-    obj = WsFbref('https://fbref.com/en/comps/12/La-Liga-Stats', db)
+    obj = WsFbref('https://fbref.com/en/comps/20/Bundesliga-Stats')
     obj.run()
      
    

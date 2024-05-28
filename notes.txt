@@ -1,0 +1,95 @@
+Gls - Goals
+Ast - Assists
+PK - Penalty Kicks Made
+PKatt - Penalty Kicks Attempted
+Sh - Shots Total
+SoT - Shots on Target
+CrdY - Yellow Cards
+CrdR - Red Cards
+Touches - Number of times a player touched the ball. Note: Receiving a pass, then dribbling, then sending a pass counts as one touch
+Tkl - Tackles
+Int - Interceptions
+Blocks - Number of times blocking the ball by standing in its path
+xG - xG: Expected Goals
+npxG - npxG: Non-Penalty xG
+xAG - xAG: Exp. Assisted Goals
+SCA - Shot-Creating Actions
+GCA - Goal-Creating Actions
+Cmp - Passes Completed
+Att - Passes Attempted
+Cmp% - Pass Completion %
+PrgP - Progressive Passes
+Carries - Number of times the player controlled the ball with their feet
+PrgC - Progressive Carries
+Att - Take-Ons Attempted
+Succ - Successful Take-Ons
+TotDist - Total Passing Distance
+PrgDist - Progressive Passing Distance
+Cmp - Passes Completed (Short)
+Att - Passes Attempted (Short)
+Cmp% - Pass Completion % (Short)
+Cmp - Passes Completed (Medium)
+Att - Passes Attempted (Medium)
+Cmp% - Pass Completion % (Medium)
+Cmp - Passes Completed (Long)
+Att - Passes Attempted (Long)
+Cmp% - Pass Completion % (Long)
+xA - xA: Expected Assists
+KP - Key Passes
+1/3 - Passes into Final Third
+PPA - Passes into Penalty Area
+CrsPA - Crosses into Penalty Area
+Live - Live-ball Passes
+Dead - Dead-ball Passes
+FK - Passes from Free Kicks
+TB - Through Balls
+Sw - Switches
+Crs - Crosses
+TI - Throw-ins Taken
+CK - Corner Kicks
+In - Inswinging Corner Kicks
+Out - Outswinging Corner Kicks
+Str - Straight Corner Kicks
+Off - Passes Offside
+Blocks - Passes Blocked
+TklW - Tackles Won
+Def 3rd - Tackles (Def 3rd)
+Mid 3rd - Tackles (Mid 3rd)
+Att 3rd - Tackles (Att 3rd)
+Tkl - Dribblers Tackled
+Att - Dribbles Challenged
+Tkl% - % of Dribblers Tackled
+Lost - Challenges Lost
+Sh - Shots Blocked
+Pass - Passes Blocked
+Tkl+Int - Number of players tackled plus number of interceptions
+Clr - Clearances
+Err - Errors
+Def Pen - Touches (Def Pen)
+Def 3rd - Touches (Def 3rd)
+Mid 3rd - Touches (Mid 3rd)
+Att 3rd - Touches (Att 3rd)
+Att Pen - Touches (Att Pen)
+Live - Touches (Live-Ball)
+Succ% - Successful Take-On %
+Tkld - Times Tackled During Take-On
+Tkld% - Tackled During Take-On Percentage
+TotDist - Total Carrying Distance
+PrgDist - Progressive Carrying Distance
+1/3 - Carries into Final Third
+CPA - Carries into Penalty Area
+Mis - Miscontrols
+Dis - Dispossessed
+Rec - Passes Received
+PrgR - Progressive Passes Rec
+2CrdY - Second Yellow Card
+Fls - Fouls Committed
+Fld - Fouls Drawn
+Off - Offsides
+PKwon - Penalty Kicks Won
+PKcon - Penalty Kicks Conceded
+OG - Own Goals
+Recov - Ball Recoveries
+Won - Aerials Won
+Lost - Aerials Lost
+Won% - % of Aerials Won
