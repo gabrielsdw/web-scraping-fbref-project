@@ -2,9 +2,9 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.edge.service import Service
 from bs4 import BeautifulSoup
+import pandas as pd
 from datetime import datetime
 from unidecode import unidecode
-
 from decorators import timer
 from bd import Db
 
@@ -126,7 +126,7 @@ class WsFbref:
         return dados
     
     
-    def retorna_estatisticas_por_time(self, times, dados):
+    def retorna_estatisticas_por_time(self, times, dados, save_csv = False):
         for time in times:
             print(time)
             dados_partidas_time = []
@@ -189,7 +189,26 @@ class WsFbref:
             
             if self.db is not None:
                 self.db.insert_many_db(dados_partidas_time)
+
+            if save_csv:    
+                self.retorna_csv_time(time, dados_partidas_time)        
+    
                 
+    def retorna_csv_time(self, time, data):
+        lengths = [len(linha.keys()) for linha in data]
+        index = lengths.index(max(lengths))
+        columns = data[index].keys()
+
+        for item in data:
+            for column in columns:
+                try:
+                    item[column]
+                except:
+                    item[column] = None
+        
+        df = pd.DataFrame(data)
+        df.to_csv(f'{time}.csv')
+
     
     def juntar_nomes_variaveis_com_valores(self, nomes_variaveis, valores_variaveis):
         return {k:v for k, v in zip(nomes_variaveis, valores_variaveis)}
@@ -280,7 +299,9 @@ class WsFbref:
             ths = [th.get_text() for th in ths]
         
             variaveis.append(ths)
-            
+
+        #####
+           
         # Código para criar o notes.txt
         if self.notes:
             variaveis_temporarias = []
@@ -298,7 +319,7 @@ class WsFbref:
                 for line in variaveis_notes:
                     file.write(f'{line}\n')
         
-        #
+        #####
 
         return variaveis
 
@@ -361,8 +382,9 @@ class WsFbref:
             cabecalhos = soup_cabecalhos.find_all('a', attrs={'class':'sr_preset'})
             cabecalhos = [str(item.get_text()).upper() for item in cabecalhos]
         except:
-            pass   
-        return cabecalhos
+            pass
+        
+        return cabecalhos if len(cabecalhos) > 0 else ['SUMMARY']
 
 
     def retorna_tabela_home_e_away(self):        
@@ -401,9 +423,9 @@ class WsFbref:
 
 
     @timer
-    def retorna_estatisticas_do_time(self, name_team: str = None, link_team: str = None):
+    def retorna_estatisticas_do_time(self, name_team: str = None, link_team: str = None, save_csv: bool = False) -> None:
         dados = self.retorna_partidas_por_time([name_team,], [link_team,])
-        self.retorna_estatisticas_por_time([name_team,], dados)
+        self.retorna_estatisticas_por_time([name_team,], dados, save_csv=save_csv)
 
         
 
@@ -412,8 +434,10 @@ class WsFbref:
 if __name__ == '__main__':
     db = Db('gabrielsdw', '54321', 'fbref', 'BundesLiga')
     
-    obj = WsFbref('https://fbref.com/en/comps/20/Bundesliga-Stats')
-    #obj.run()
-    obj.retorna_estatisticas_do_time(name_team='Man city', link_team='https://fbref.com/en/squads/b8fd03ef/Manchester-City-Stats')
+    obj = WsFbref('https://fbref.com/en/comps/9/Premier-League-Stats')
+    # obj.run() para pegar todas as partidas de todos os times de um campeonato
+    
+    # para pegar as partidas de apenas um time
+    obj.retorna_estatisticas_do_time(name_team='Man city', link_team='https://fbref.com/en/squads/b8fd03ef/Manchester-City-Stats', save_csv=True)
      
    
